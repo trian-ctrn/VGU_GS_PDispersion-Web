@@ -115,6 +115,11 @@ function App() {
             return;
         }
 
+        let warning: string | null = null;
+        if (placements !== classRoster.length) {
+            warning = `⚠ "Seats to Use" (${placements}) doesn't match the number of students (${classRoster.length}).`;
+        }
+
         try {
             const indices = solve_p_dispersion(points, placements);
             const result = new Set<string>();
@@ -147,9 +152,10 @@ function App() {
                 }
 
                 if (conflictCount > 0) {
-                    setError(
-                        `⚠ Exam ${examId} assigned with ${conflictCount} conflict(s)!`,
-                    );
+                    const msg = `⚠ Exam ${examId} assigned with ${conflictCount} conflict(s)!`;
+                    setError(warning ? `${warning}\n${msg}` : msg);
+                } else if (warning) {
+                    setError(warning);
                 }
             }
         } catch (e: unknown) {
