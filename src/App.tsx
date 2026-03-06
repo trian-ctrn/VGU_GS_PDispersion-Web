@@ -28,8 +28,8 @@ const generateDefaultRoster = (count: number): Student[] =>
 
 function App() {
     const [ready, setReady] = useState(false);
-    const [rows, setRows] = useState(DEFAULT_ROWS);
-    const [cols, setCols] = useState(DEFAULT_COLS);
+    const [rows, setRows] = useState<number>(DEFAULT_ROWS);
+    const [cols, setCols] = useState<number>(DEFAULT_COLS);
     const [placements, setPlacements] = useState(2);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [resultCells, setResultCells] = useState<Set<string>>(new Set());
