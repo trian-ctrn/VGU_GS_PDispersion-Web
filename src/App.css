@@ -224,4 +224,187 @@
         background: #22c55e;
         border-color: #16a34a;
     }
+
+    .csv-status {
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    .csv-count {
+        color: #16a34a;
+    }
+
+    .info-value {
+        color: #16a34a;
+    }
+
+    .seating-grid-wrapper {
+        background: #f3f4f6;
+    }
+
+    .seating-cell.empty {
+        background: #e5e7eb;
+        border-color: #ccc;
+        color: #999;
+    }
+
+    .seating-cell.occupied {
+        background: #22c55e;
+        border-color: #16a34a;
+    }
+
+    .seating-cell.conflict {
+        background: #ef4444;
+        border-color: #dc2626;
+    }
+
+    .export-label {
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    .results-details summary {
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    .assignment-list {
+        color: #374151;
+    }
+
+    .assignment-list .conflict {
+        color: #dc2626;
+    }
+}
+
+/* ── CSV Import ── */
+.csv-header {
+    margin-bottom: 0.4rem;
+}
+
+.csv-status {
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.45);
+    text-align: center;
+}
+
+.csv-count {
+    color: #86efac;
+}
+
+/* ── Info value (read-only display) ── */
+.info-value {
+    padding: 0.4em 0.55em;
+    font-size: 0.92rem;
+    color: #86efac;
+    font-weight: 700;
+}
+
+/* ── Results section ── */
+.results-section {
+    margin-top: 1.25rem;
+}
+
+.results-title {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* ── Seating grid (visualization & export target) ── */
+.seating-grid-wrapper {
+    display: inline-block;
+    padding: 16px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.seating-grid {
+    display: grid;
+    gap: 5px;
+}
+
+.seating-cell {
+    width: 60px;
+    height: 60px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seating-cell.empty {
+    background: #333;
+    border: 1px solid #555;
+    color: #666;
+    font-weight: normal;
+}
+
+.seating-cell.occupied {
+    background: #4CAF50;
+    border: 2px solid #66BB6A;
+    color: #fff;
+}
+
+.seating-cell.conflict {
+    background: #f44336;
+    border: 2px solid #e53935;
+    color: #fff;
+}
+
+/* ── Export bar ── */
+.export-bar {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.export-label {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.9rem;
+}
+
+.btn-export {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #fff;
+    border: none;
+}
+
+.btn-export-csv { background: #0d9488; }
+.btn-export-png { background: #7c3aed; }
+.btn-export-pdf { background: #dc2626; }
+
+.btn-export:hover:not(:disabled) { opacity: 0.85; }
+.btn-export:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Results details ── */
+.results-details {
+    text-align: left;
+    margin-top: 0.75rem;
+}
+
+.results-details summary {
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.9rem;
+}
+
+.assignment-list {
+    margin-top: 0.5rem;
+    padding-left: 1.2rem;
+    font-size: 0.88rem;
+    color: #d1d5db;
+}
+
+.assignment-list .conflict {
+    color: #f87171;
 }
