@@ -32,21 +32,21 @@ export function ControlPanel({
         <section className="panel">
             <div className="panel-row">
                 <NumberField
-                    label="Rows"
+                    label="Room Rows"
                     value={rows}
                     min={MIN_ROWS}
                     max={MAX_ROWS}
                     onChange={onRowsChange}
                 />
                 <NumberField
-                    label="Columns"
+                    label="Room Columns"
                     value={cols}
                     min={MIN_COLS}
                     max={MAX_COLS}
                     onChange={onColsChange}
                 />
                 <NumberField
-                    label="p (placements)"
+                    label="Seats to Use"
                     value={placements}
                     min={1}
                     max={999}
@@ -56,17 +56,17 @@ export function ControlPanel({
 
             <div className="panel-row actions">
                 <button className="btn btn-secondary" onClick={onSelectAll}>
-                    Select All
+                    Mark All Available
                 </button>
                 <button className="btn btn-secondary" onClick={onClear}>
-                    Clear
+                    Reset Room
                 </button>
                 <button
                     className="btn btn-primary"
                     onClick={onSolve}
                     disabled={!ready}
                 >
-                    {ready ? 'Solve' : 'Loading…'}
+                    {ready ? '🪑 Assign Seats' : 'Loading…'}
                 </button>
             </div>
         </section>

@@ -3,7 +3,7 @@ import type { Assignment } from './graphColoring';
 export const exportCSV = (assignments: Assignment[], examId: number): void => {
     const header = 'exam_id,student_id,student_name,seat_row,seat_col';
     const rows = assignments.map(
-        a => `${examId},${a.student.id},"${a.student.name}",${a.point.x},${a.point.y}`,
+        a => `${examId},${a.student.id},"${a.student.name}",${a.point.x + 1},${a.point.y + 1}`,
     );
     const csvContent = [header, ...rows].join('\n');
     downloadBlob(

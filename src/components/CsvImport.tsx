@@ -73,6 +73,7 @@ export function CsvImport({ onStudentsLoaded, studentCount }: CsvImportProps) {
         <section className="panel">
             <div className="panel-row csv-header">
                 <span className="field-label">Student Roster</span>
+                <span className="help-tip" title="Upload a CSV with 'id' and 'name' columns. Or use the sample file as a template.">?</span>
             </div>
             <div className="panel-row actions">
                 <button className="btn btn-secondary" onClick={downloadSample}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 const clamp = (v: number, lo: number, hi: number) =>
     Math.min(hi, Math.max(lo, v));
@@ -12,41 +12,33 @@ interface NumberFieldProps {
 }
 
 /**
- * Numeric input that keeps a string draft while the user types,
- * so they can freely clear the field before entering a new number.
- * Validation + clamping happen on blur or Enter.
+ * Numeric input that keeps a local string draft only while focused,
+ * so the user can freely clear the field before entering a new number.
+ * When blurred, the displayed value always reflects the parent prop.
  */
 export function NumberField({ label, value, min, max, onChange }: NumberFieldProps) {
-    const [draft, setDraft] = useState(String(value));
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (document.activeElement !== inputRef.current) {
-            setDraft(String(value));
-        }
-    }, [value]);
+    const [draft, setDraft] = useState<string | null>(null);
+    const focused = draft !== null;
 
     const commit = () => {
+        if (draft === null) return;
         const n = parseInt(draft, 10);
-        if (Number.isNaN(n) || draft.trim() === '') {
-            setDraft(String(value));
-        } else {
-            const clamped = clamp(n, min, max);
-            onChange(clamped);
-            setDraft(String(clamped));
+        if (!Number.isNaN(n) && draft.trim() !== '') {
+            onChange(clamp(n, min, max));
         }
+        setDraft(null);
     };
 
     return (
         <div className="field">
             <span className="field-label">{label}</span>
             <input
-                ref={inputRef}
                 type="text"
                 inputMode="numeric"
                 className="field-input"
-                value={draft}
+                value={focused ? draft : String(value)}
                 onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+                onFocus={() => setDraft(String(value))}
                 onBlur={commit}
                 onKeyDown={e => { if (e.key === 'Enter') commit(); }}
             />

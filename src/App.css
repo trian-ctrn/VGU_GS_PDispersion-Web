@@ -1,17 +1,87 @@
 /* ═══════════════════════════════════════════
-   App.css – P-Dispersion Solver
+   App.css – Exam Seating Allocator
    ═══════════════════════════════════════════ */
 
 /* ── App shell ── */
 .app {
-    max-width: 560px;
+    max-width: 1440px;
     width: 100%;
     margin: 0 auto;
-    padding: 2.5rem 1.5rem 3rem;
+    padding: 2rem 1.5rem 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     user-select: none;
+}
+
+/* ── Three-column layout ── */
+.layout-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: start;
+}
+
+.col-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: sticky;
+    top: 1rem;
+}
+
+.col-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+.col-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 0;
+    position: sticky;
+    top: 1rem;
+}
+
+/* Column 3 placeholder when no results yet */
+.col-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    border: 2px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: 100%;
+}
+
+/* Tablet: controls + 2 stacked grids */
+@media (max-width: 1100px) {
+    .layout-grid {
+        grid-template-columns: 280px 1fr;
+    }
+    .col-right {
+        grid-column: 2;
+        position: static;
+    }
+}
+
+/* Mobile: single column */
+@media (max-width: 700px) {
+    .layout-grid {
+        grid-template-columns: 1fr;
+    }
+    .col-left {
+        position: static;
+    }
+    .col-right {
+        grid-column: auto;
+    }
 }
 
 /* ── Header ── */
@@ -131,14 +201,6 @@
     cursor: not-allowed;
 }
 
-/* ── Error ── */
-.error {
-    color: #ff6b6b;
-    font-size: 0.85rem;
-    margin: 0 0 0.75rem;
-    text-align: center;
-}
-
 /* ── Board wrapper (fixed max size → no layout shift) ── */
 .board-wrapper {
     display: flex;
@@ -233,10 +295,6 @@
         color: #16a34a;
     }
 
-    .info-value {
-        color: #16a34a;
-    }
-
     .seating-grid-wrapper {
         background: #f3f4f6;
     }
@@ -290,23 +348,23 @@
     color: #86efac;
 }
 
-/* ── Info value (read-only display) ── */
-.info-value {
-    padding: 0.4em 0.55em;
-    font-size: 0.92rem;
-    color: #86efac;
-    font-weight: 700;
-}
-
 /* ── Results section ── */
 .results-section {
-    margin-top: 1.25rem;
+    margin-top: 0;
 }
 
 .results-title {
-    margin: 0 0 1rem;
-    font-size: 1rem;
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
     font-weight: 600;
+    text-align: center;
+}
+
+/* ── Seating label ── */
+.seating-label {
+    margin: 0 0 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
     text-align: center;
 }
 
@@ -407,4 +465,267 @@
 
 .assignment-list .conflict {
     color: #f87171;
+}
+
+/* ═══════════════════════════════════════════
+   New UX styles
+   ═══════════════════════════════════════════ */
+
+/* ── Step groups ── */
+.step-group {
+    margin-bottom: 0.25rem;
+}
+
+.step-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 0.6rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #646cff;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ── Compact panel variant ── */
+.compact-panel {
+    padding: 0.8rem 1.2rem;
+}
+
+/* ── Stat row ── */
+.stat-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.stat-value {
+    color: #86efac;
+    font-weight: 700;
+}
+
+.stat-sep {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Grid section (right col) ── */
+.grid-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.grid-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.grid-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Color legend ── */
+.legend {
+    display: flex;
+    gap: 1.2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.25rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.swatch-empty      { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+.swatch-selected   { background: #3b82f6; border-color: #60a5fa; }
+.swatch-result     { background: #22c55e; border-color: #4ade80; }
+.swatch-empty-seat { background: #333; border-color: #555; }
+.swatch-occupied   { background: #4CAF50; border-color: #66BB6A; }
+.swatch-conflict   { background: #f44336; border-color: #e53935; }
+
+/* ── Alert (replaces plain .error) ── */
+.alert {
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+
+.alert-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fde68a;
+}
+
+.alert-msg {
+    margin: 0;
+    font-weight: 600;
+}
+
+.alert-body {
+    margin-top: 0.5rem;
+}
+
+.alert-explain {
+    margin: 0 0 0.5rem;
+    font-weight: 400;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    opacity: 0.85;
+}
+
+.btn-sm {
+    padding: 0.3em 0.85em;
+    font-size: 0.8rem;
+}
+
+/* ── Help tooltip ── */
+.help-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: help;
+    flex-shrink: 0;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background 0.15s, color 0.15s;
+}
+
+.help-tip:hover {
+    background: rgba(100, 108, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Placeholder text when no results yet ── */
+.placeholder-text {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-align: center;
+    padding: 1rem;
+    line-height: 1.5;
+}
+
+/* ── Light-mode overrides for new elements ── */
+@media (prefers-color-scheme: light) {
+    .step-heading {
+        color: rgba(0, 0, 0, 0.8);
+    }
+
+    .grid-title {
+        color: rgba(0, 0, 0, 0.8);
+    }
+
+    .grid-hint {
+        color: rgba(0, 0, 0, 0.4);
+    }
+
+    .legend {
+        color: rgba(0, 0, 0, 0.5);
+    }
+
+    .legend-swatch {
+        border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    .swatch-empty {
+        background: #e5e7eb;
+        border-color: #ccc;
+    }
+
+    .swatch-empty-seat {
+        background: #e5e7eb;
+        border-color: #ccc;
+    }
+
+    .stat-row {
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    .stat-value {
+        color: #16a34a;
+    }
+
+    .stat-sep {
+        color: rgba(0, 0, 0, 0.15);
+    }
+
+    .help-tip {
+        background: rgba(0, 0, 0, 0.06);
+        color: rgba(0, 0, 0, 0.4);
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .help-tip:hover {
+        background: rgba(100, 108, 255, 0.1);
+        color: rgba(0, 0, 0, 0.7);
+    }
+
+    .alert-error {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #dc2626;
+    }
+
+    .alert-warning {
+        background: rgba(217, 119, 6, 0.08);
+        border-color: rgba(217, 119, 6, 0.25);
+        color: #92400e;
+    }
+
+    .placeholder-text {
+        color: rgba(0, 0, 0, 0.35);
+    }
+
+    .col-placeholder {
+        border-color: rgba(0, 0, 0, 0.1);
+    }
 }

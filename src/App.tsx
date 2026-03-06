@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import './App.css';
 import init, { Point, solve_p_dispersion } from '../pkg/p_dispersion';
 
-import { Board, cellKey } from './components/Board';
+import { Board } from './components/Board';
+import { cellKey } from './utils/cellKey';
 import { ControlPanel } from './components/ControlPanel';
 import { CsvImport } from './components/CsvImport';
 import { NumberField } from './components/NumberField';
@@ -52,7 +53,7 @@ function App() {
             const key = cellKey(r, c);
             setSelected(prev => {
                 const next = new Set(prev);
-                mode === 'select' ? next.add(key) : next.delete(key);
+                if (mode === 'select') next.add(key); else next.delete(key);
                 return next;
             });
             setResultCells(new Set());
@@ -178,157 +179,249 @@ function App() {
     return (
         <div className="app" onPointerUp={stopDrag} onPointerLeave={stopDrag}>
             <header className="header">
-                <h1>P-Dispersion Solver</h1>
+                <h1>🎓 Exam Seating Allocator</h1>
                 <p className="subtitle">
-                    Click &amp; drag to select candidates · adjust settings · hit{' '}
-                    <strong>Solve</strong>
+                    Optimally space students apart using P-Dispersion &amp; Graph Coloring
                 </p>
             </header>
 
-            <CsvImport
-                onStudentsLoaded={setClassRoster}
-                studentCount={classRoster.length}
-            />
-
-            <ControlPanel
-                rows={rows}
-                cols={cols}
-                placements={placements}
-                ready={ready}
-                onRowsChange={handleRowsChange}
-                onColsChange={handleColsChange}
-                onPlacementsChange={setPlacements}
-                onSelectAll={selectAll}
-                onClear={resetBoard}
-                onSolve={solve}
-            />
-
-            <section className="panel">
-                <div className="panel-row">
-                    <NumberField
-                        label="History Limit"
-                        value={historyLimit}
-                        min={0}
-                        max={10}
-                        onChange={setHistoryLimit}
-                    />
-                    <div className="field">
-                        <span className="field-label">Students</span>
-                        <span className="info-value">{classRoster.length}</span>
+            <div className="layout-grid">
+                {/* ── Left column: step-by-step controls ── */}
+                <aside className="col-left">
+                    {/* Step 1 — Room */}
+                    <div className="step-group">
+                        <h2 className="step-heading">
+                            <span className="step-num">1</span> Room Setup
+                            <span className="help-tip" title="Set the room size, then click &amp; drag on the floor plan to mark which seats are available for this exam.">?</span>
+                        </h2>
+                        <ControlPanel
+                            rows={rows}
+                            cols={cols}
+                            placements={placements}
+                            ready={ready}
+                            onRowsChange={handleRowsChange}
+                            onColsChange={handleColsChange}
+                            onPlacementsChange={setPlacements}
+                            onSelectAll={selectAll}
+                            onClear={resetBoard}
+                            onSolve={solve}
+                        />
                     </div>
-                    <div className="field">
-                        <span className="field-label">Exams Run</span>
-                        <span className="info-value">{history.length}</span>
+
+                    {/* Step 2 — Students */}
+                    <div className="step-group">
+                        <h2 className="step-heading">
+                            <span className="step-num">2</span> Students
+                        </h2>
+                        <CsvImport
+                            onStudentsLoaded={setClassRoster}
+                            studentCount={classRoster.length}
+                        />
+                        <section className="panel compact-panel">
+                            <div className="panel-row">
+                                <NumberField
+                                    label="Conflict Memory"
+                                    value={historyLimit}
+                                    min={0}
+                                    max={10}
+                                    onChange={setHistoryLimit}
+                                />
+                                <span className="help-tip" title="How many past exams to remember. Students who sat next to each other within this many exams will be kept apart.">?</span>
+                            </div>
+                            <div className="stat-row">
+                                <span className="stat">
+                                    <span className="stat-value">{classRoster.length}</span> students
+                                </span>
+                                <span className="stat-sep">·</span>
+                                <span className="stat">
+                                    <span className="stat-value">{history.length}</span> exam{history.length !== 1 ? 's' : ''} run
+                                </span>
+                            </div>
+                        </section>
                     </div>
-                </div>
-            </section>
 
-            {error && <p className="error">{error}</p>}
+                    {/* Step 3 — Results */}
+                    <div className="step-group">
+                        <h2 className="step-heading">
+                            <span className="step-num">3</span> Results
+                        </h2>
 
-            <Board
-                rows={rows}
-                cols={cols}
-                selected={selected}
-                resultCells={resultCells}
-                onCellDown={onCellDown}
-                onCellEnter={onCellEnter}
-            />
-
-            {/* ── Assignment Results ── */}
-            {currentAssignments.length > 0 && (
-                <section className="panel results-section">
-                    <h3 className="results-title">
-                        Exam {examCounter - 1} — {currentAssignments.length} student
-                        {currentAssignments.length !== 1 ? 's' : ''} assigned
-                    </h3>
-
-                    <div id="seating-result" className="seating-grid-wrapper">
-                        <div
-                            className="seating-grid"
-                            style={{
-                                gridTemplateColumns: `repeat(${cols}, 60px)`,
-                            }}
-                        >
-                            {Array.from({ length: rows * cols }, (_, i) => {
-                                const r = Math.floor(i / cols);
-                                const c = i % cols;
-                                const key = `${r},${c}`;
-                                const data = assignmentMap.get(key);
-                                const isOccupied = !!data;
-                                const hasConflict = data?.hasConflict ?? false;
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`seating-cell ${
-                                            isOccupied
-                                                ? hasConflict
-                                                    ? 'conflict'
-                                                    : 'occupied'
-                                                : 'empty'
-                                        }`}
-                                        title={
-                                            isOccupied
-                                                ? `${data.name} at (${r}, ${c})${hasConflict ? ' - CONFLICT!' : ''}`
-                                                : `Empty (${r}, ${c})`
-                                        }
-                                    >
-                                        {isOccupied ? data.name : `${r},${c}`}
+                        {error && (
+                            <div className={`alert ${currentAssignments.some(a => a.hasConflict) ? 'alert-warning' : 'alert-error'}`}>
+                                <p className="alert-msg">{error}</p>
+                                {currentAssignments.some(a => a.hasConflict) && (
+                                    <div className="alert-body">
+                                        <p className="alert-explain">
+                                            Some students were placed next to someone they sat beside in a recent exam.
+                                            Try increasing the room size, reducing "Seats to Use", or clearing exam history.
+                                        </p>
+                                        <button className="btn btn-secondary btn-sm" onClick={solve}>
+                                            🔄 Re-assign
+                                        </button>
                                     </div>
-                                );
-                            })}
+                                )}
+                            </div>
+                        )}
+
+                        {currentAssignments.length > 0 ? (
+                            <section className="panel results-section">
+                                <h3 className="results-title">
+                                    Exam #{examCounter - 1} — {currentAssignments.length} student{currentAssignments.length !== 1 ? 's' : ''} seated
+                                </h3>
+
+                                <div className="export-bar">
+                                    <span className="export-label">Export:</span>
+                                    {(['csv', 'png', 'pdf'] as const).map(type => (
+                                        <button
+                                            key={type}
+                                            className={`btn btn-export btn-export-${type}`}
+                                            onClick={() => handleExport(type)}
+                                            disabled={exporting !== null}
+                                        >
+                                            {exporting === type
+                                                ? 'Exporting…'
+                                                : type.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <details className="results-details" open>
+                                    <summary>
+                                        Seat assignments ({currentAssignments.length})
+                                    </summary>
+                                    <ul className="assignment-list">
+                                        {currentAssignments.map((a, i) => (
+                                            <li
+                                                key={i}
+                                                className={a.hasConflict ? 'conflict' : ''}
+                                            >
+                                                {a.student.name} → Row {a.point.x + 1}, Seat{' '}
+                                                {a.point.y + 1}
+                                                {a.hasConflict ? ' ⚠️ neighbor conflict' : ''}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </details>
+
+                                {history.length > 0 && (
+                                    <details className="results-details">
+                                        <summary>Past exams ({history.length})</summary>
+                                        <ul className="assignment-list">
+                                            {history.map(e => (
+                                                <li key={e.id}>
+                                                    <strong>Exam #{e.id}:</strong>{' '}
+                                                    {e.assignments.length} students
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
+                                )}
+                            </section>
+                        ) : (
+                            <p className="placeholder-text">
+                                Mark available seats on the floor plan, then click
+                                <strong> 🪑 Assign Seats</strong> to generate results.
+                            </p>
+                        )}
+                    </div>
+                </aside>
+
+                {/* ── Column 2: floor plan ── */}
+                <main className="col-center">
+                    <div className="grid-section">
+                        <h3 className="grid-title">Floor Plan</h3>
+                        <p className="grid-hint">Click &amp; drag to mark available seats</p>
+
+                        <Board
+                            rows={rows}
+                            cols={cols}
+                            selected={selected}
+                            resultCells={resultCells}
+                            onCellDown={onCellDown}
+                            onCellEnter={onCellEnter}
+                        />
+
+                        {/* Color legend */}
+                        <div className="legend">
+                            <span className="legend-item">
+                                <span className="legend-swatch swatch-empty" /> Unavailable
+                            </span>
+                            <span className="legend-item">
+                                <span className="legend-swatch swatch-selected" /> Available
+                            </span>
+                            <span className="legend-item">
+                                <span className="legend-swatch swatch-result" /> Assigned
+                            </span>
                         </div>
                     </div>
+                </main>
 
-                    <div className="export-bar">
-                        <span className="export-label">Export:</span>
-                        {(['csv', 'png', 'pdf'] as const).map(type => (
-                            <button
-                                key={type}
-                                className={`btn btn-export btn-export-${type}`}
-                                onClick={() => handleExport(type)}
-                                disabled={exporting !== null}
-                            >
-                                {exporting === type
-                                    ? 'Exporting…'
-                                    : type.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
+                {/* ── Column 3: seating map (visible after solving) ── */}
+                <div className="col-right">
+                    {currentAssignments.length > 0 ? (
+                        <div className="grid-section">
+                            <h3 className="grid-title">Seating Map — Exam #{examCounter - 1}</h3>
 
-                    <details className="results-details">
-                        <summary>
-                            Assignment list ({currentAssignments.length} students)
-                        </summary>
-                        <ul className="assignment-list">
-                            {currentAssignments.map((a, i) => (
-                                <li
-                                    key={i}
-                                    className={a.hasConflict ? 'conflict' : ''}
+                            <div id="seating-result" className="seating-grid-wrapper">
+                                <div
+                                    className="seating-grid"
+                                    style={{
+                                        gridTemplateColumns: `repeat(${cols}, 60px)`,
+                                    }}
                                 >
-                                    {a.student.name} → row {a.point.x}, col{' '}
-                                    {a.point.y}
-                                    {a.hasConflict ? ' ⚠️ conflict' : ''}
-                                </li>
-                            ))}
-                        </ul>
-                    </details>
+                                    {Array.from({ length: rows * cols }, (_, i) => {
+                                        const r = Math.floor(i / cols);
+                                        const c = i % cols;
+                                        const key = `${r},${c}`;
+                                        const data = assignmentMap.get(key);
+                                        const isOccupied = !!data;
+                                        const hasConflict = data?.hasConflict ?? false;
 
-                    {history.length > 0 && (
-                        <details className="results-details">
-                            <summary>Exam history ({history.length})</summary>
-                            <ul className="assignment-list">
-                                {history.map(e => (
-                                    <li key={e.id}>
-                                        <strong>Exam {e.id}:</strong>{' '}
-                                        {e.assignments.length} students
-                                    </li>
-                                ))}
-                            </ul>
-                        </details>
+                                        return (
+                                            <div
+                                                key={i}
+                                                className={`seating-cell ${
+                                                    isOccupied
+                                                        ? hasConflict
+                                                            ? 'conflict'
+                                                            : 'occupied'
+                                                        : 'empty'
+                                                }`}
+                                                title={
+                                                    isOccupied
+                                                        ? `${data.name} — Row ${r + 1}, Seat ${c + 1}${hasConflict ? ' ⚠ NEIGHBOR CONFLICT' : ''}`
+                                                        : `Empty — Row ${r + 1}, Seat ${c + 1}`
+                                                }
+                                            >
+                                                {isOccupied ? data.name : ''}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Seating map legend */}
+                            <div className="legend">
+                                <span className="legend-item">
+                                    <span className="legend-swatch swatch-empty-seat" /> Empty
+                                </span>
+                                <span className="legend-item">
+                                    <span className="legend-swatch swatch-occupied" /> Seated
+                                </span>
+                                <span className="legend-item">
+                                    <span className="legend-swatch swatch-conflict" /> Conflict
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="col-placeholder">
+                            <p className="placeholder-text">
+                                Seating map will appear here after you assign seats.
+                            </p>
+                        </div>
                     )}
-                </section>
-            )}
+                </div>
+            </div>
         </div>
     );
 }

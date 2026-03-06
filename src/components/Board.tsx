@@ -1,13 +1,12 @@
 import { GRID_CONFIG } from '../constants';
+import { cellKey } from '../utils/cellKey';
 
 const { MAX_ROWS, MAX_COLS } = GRID_CONFIG;
 
-const CELL_SIZE = 70;
+export const CELL_SIZE = 70;
 const GAP = 4;
 const BOARD_WIDTH = MAX_COLS * CELL_SIZE + (MAX_COLS - 1) * GAP;
 const BOARD_HEIGHT = MAX_ROWS * CELL_SIZE + (MAX_ROWS - 1) * GAP;
-
-export const cellKey = (r: number, c: number) => `${r},${c}`;
 
 interface BoardProps {
     rows: number;
@@ -57,7 +56,7 @@ export function Board({
                                     onCellDown(r, c, isSelected);
                                 }}
                                 onPointerEnter={() => onCellEnter(r, c)}
-                                title={`(${r}, ${c})`}
+                                title={`Row ${r + 1}, Seat ${c + 1}`}
                             />
                         );
                     }),
