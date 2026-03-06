@@ -4,7 +4,7 @@
 
 /* ── App shell ── */
 .app {
-    max-width: 1440px;
+    max-width: 1100px;
     width: 100%;
     margin: 0 auto;
     padding: 2rem 1.5rem 3rem;
@@ -14,10 +14,10 @@
     user-select: none;
 }
 
-/* ── Three-column layout ── */
+/* ── Two-column layout ── */
 .layout-grid {
     display: grid;
-    grid-template-columns: 280px 1fr 1fr;
+    grid-template-columns: 300px 1fr;
     gap: 1.5rem;
     width: 100%;
     align-items: start;
@@ -31,56 +31,21 @@
     top: 1rem;
 }
 
-.col-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 0;
-}
-
 .col-right {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1.5rem;
     min-height: 0;
-    position: sticky;
-    top: 1rem;
-}
-
-/* Column 3 placeholder when no results yet */
-.col-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    border: 2px dashed rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    width: 100%;
-}
-
-/* Tablet: controls + 2 stacked grids */
-@media (max-width: 1100px) {
-    .layout-grid {
-        grid-template-columns: 280px 1fr;
-    }
-    .col-right {
-        grid-column: 2;
-        position: static;
-    }
 }
 
 /* Mobile: single column */
-@media (max-width: 700px) {
+@media (max-width: 780px) {
     .layout-grid {
         grid-template-columns: 1fr;
     }
     .col-left {
         position: static;
-    }
-    .col-right {
-        grid-column: auto;
     }
 }
 
@@ -383,13 +348,13 @@
 }
 
 .seating-cell {
-    width: 60px;
-    height: 60px;
+    width: 44px;
+    height: 44px;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: bold;
     transition: all 0.3s ease;
     overflow: hidden;
@@ -645,6 +610,32 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
+.help-tip .tip-text {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    background: #1e1e2e;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    white-space: normal;
+    width: 200px;
+    text-align: left;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+.help-tip:hover .tip-text {
+    display: block;
+}
+
 /* ── Placeholder text when no results yet ── */
 .placeholder-text {
     font-size: 0.85rem;
@@ -696,6 +687,13 @@
 
     .stat-sep {
         color: rgba(0, 0, 0, 0.15);
+    }
+
+    .help-tip .tip-text {
+        background: #fff;
+        color: rgba(0, 0, 0, 0.8);
+        border-color: rgba(0, 0, 0, 0.12);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .help-tip {

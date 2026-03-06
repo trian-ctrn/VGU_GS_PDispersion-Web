@@ -86,8 +86,8 @@ function App() {
     const handleRowsChange = (v: number) => { setRows(v); resetBoard(); };
     const handleColsChange = (v: number) => { setCols(v); resetBoard(); };
 
-    /* ── Solver ── */
-    const solve = () => {
+    /* ── Solver (core logic shared by solve & reassign) ── */
+    const runSolver = (historyForSolver: ExamRecord[], examId: number, appendToHistory: boolean) => {
         setError(null);
         setResultCells(new Set());
         setCurrentAssignments([]);
@@ -128,7 +128,7 @@ function App() {
             // Assign students to optimal seats via graph coloring
             if (classRoster.length > 0 && placements > 0) {
                 const studentsToAssign = classRoster.slice(0, placements);
-                const forbiddenPairs = getForbiddenPairs(history, historyLimit);
+                const forbiddenPairs = getForbiddenPairs(historyForSolver, historyLimit);
                 const assignments = assignStudentsToSeats(
                     optimalSeats,
                     studentsToAssign,
@@ -137,12 +137,18 @@ function App() {
                 setCurrentAssignments(assignments);
 
                 const conflictCount = assignments.filter(a => a.hasConflict).length;
-                setHistory(prev => [...prev, { id: examCounter, assignments }]);
-                setExamCounter(prev => prev + 1);
+
+                if (appendToHistory) {
+                    setHistory(prev => [...prev, { id: examId, assignments }]);
+                    setExamCounter(prev => prev + 1);
+                } else {
+                    // Replace the last entry (re-assign)
+                    setHistory(prev => [...prev.slice(0, -1), { id: examId, assignments }]);
+                }
 
                 if (conflictCount > 0) {
                     setError(
-                        `⚠ Exam ${examCounter} assigned with ${conflictCount} conflict(s)!`,
+                        `⚠ Exam ${examId} assigned with ${conflictCount} conflict(s)!`,
                     );
                 }
             }
@@ -151,6 +157,19 @@ function App() {
                 `Solver error: ${e instanceof Error ? e.message : String(e)}`,
             );
         }
+    };
+
+    const solve = () => {
+        runSolver(history, examCounter, true);
+    };
+
+    /* Clear all exam history */
+    const clearHistory = () => {
+        setHistory([]);
+        setCurrentAssignments([]);
+        setResultCells(new Set());
+        setExamCounter(1);
+        setError(null);
     };
 
     /* ── Export ── */
@@ -168,9 +187,10 @@ function App() {
     };
 
     /* ── Build assignment map for seating display ── */
-    const assignmentMap = new Map<string, { name: string; hasConflict: boolean }>();
+    const assignmentMap = new Map<string, { id: string; name: string; hasConflict: boolean }>();
     currentAssignments.forEach(a => {
         assignmentMap.set(`${a.point.x},${a.point.y}`, {
+            id: a.student.id,
             name: a.student.name,
             hasConflict: a.hasConflict ?? false,
         });
@@ -192,7 +212,9 @@ function App() {
                     <div className="step-group">
                         <h2 className="step-heading">
                             <span className="step-num">1</span> Room Setup
-                            <span className="help-tip" title="Set the room size, then click &amp; drag on the floor plan to mark which seats are available for this exam.">?</span>
+                            <span className="help-tip">?
+                                <span className="tip-text">Set the room size, then click &amp; drag on the floor plan to mark which seats are available.</span>
+                            </span>
                         </h2>
                         <ControlPanel
                             rows={rows}
@@ -226,7 +248,9 @@ function App() {
                                     max={10}
                                     onChange={setHistoryLimit}
                                 />
-                                <span className="help-tip" title="How many past exams to remember. Students who sat next to each other within this many exams will be kept apart.">?</span>
+                                <span className="help-tip">?
+                                    <span className="tip-text">How many past exams to remember. Students who sat next to each other within this window are kept apart.</span>
+                                </span>
                             </div>
                             <div className="stat-row">
                                 <span className="stat">
@@ -236,6 +260,11 @@ function App() {
                                 <span className="stat">
                                     <span className="stat-value">{history.length}</span> exam{history.length !== 1 ? 's' : ''} run
                                 </span>
+                                {history.length > 0 && (
+                                    <button className="btn btn-secondary btn-sm" onClick={clearHistory}>
+                                        ✕ Clear
+                                    </button>
+                                )}
                             </div>
                         </section>
                     </div>
@@ -250,15 +279,10 @@ function App() {
                             <div className={`alert ${currentAssignments.some(a => a.hasConflict) ? 'alert-warning' : 'alert-error'}`}>
                                 <p className="alert-msg">{error}</p>
                                 {currentAssignments.some(a => a.hasConflict) && (
-                                    <div className="alert-body">
-                                        <p className="alert-explain">
-                                            Some students were placed next to someone they sat beside in a recent exam.
-                                            Try increasing the room size, reducing "Seats to Use", or clearing exam history.
-                                        </p>
-                                        <button className="btn btn-secondary btn-sm" onClick={solve}>
-                                            🔄 Re-assign
-                                        </button>
-                                    </div>
+                                    <p className="alert-explain">
+                                        Some students were placed next to someone they sat beside in a recent exam.
+                                        Try increasing the room size, reducing "Seats to Use", or clearing exam history.
+                                    </p>
                                 )}
                             </div>
                         )}
@@ -326,8 +350,8 @@ function App() {
                     </div>
                 </aside>
 
-                {/* ── Column 2: floor plan ── */}
-                <main className="col-center">
+                {/* ── Right column: floor plan + seating map ── */}
+                <div className="col-right">
                     <div className="grid-section">
                         <h3 className="grid-title">Floor Plan</h3>
                         <p className="grid-hint">Click &amp; drag to mark available seats</p>
@@ -354,11 +378,9 @@ function App() {
                             </span>
                         </div>
                     </div>
-                </main>
 
-                {/* ── Column 3: seating map (visible after solving) ── */}
-                <div className="col-right">
-                    {currentAssignments.length > 0 ? (
+                    {/* ── Seating map (visible after solving) ── */}
+                    {currentAssignments.length > 0 && (
                         <div className="grid-section">
                             <h3 className="grid-title">Seating Map — Exam #{examCounter - 1}</h3>
 
@@ -366,7 +388,7 @@ function App() {
                                 <div
                                     className="seating-grid"
                                     style={{
-                                        gridTemplateColumns: `repeat(${cols}, 60px)`,
+                                        gridTemplateColumns: `repeat(${cols}, 44px)`,
                                     }}
                                 >
                                     {Array.from({ length: rows * cols }, (_, i) => {
@@ -393,7 +415,7 @@ function App() {
                                                         : `Empty — Row ${r + 1}, Seat ${c + 1}`
                                                 }
                                             >
-                                                {isOccupied ? data.name : ''}
+                                                {isOccupied ? data.id : ''}
                                             </div>
                                         );
                                     })}
@@ -412,12 +434,6 @@ function App() {
                                     <span className="legend-swatch swatch-conflict" /> Conflict
                                 </span>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="col-placeholder">
-                            <p className="placeholder-text">
-                                Seating map will appear here after you assign seats.
-                            </p>
                         </div>
                     )}
                 </div>

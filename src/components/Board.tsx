@@ -1,12 +1,7 @@
-import { GRID_CONFIG } from '../constants';
 import { cellKey } from '../utils/cellKey';
 
-const { MAX_ROWS, MAX_COLS } = GRID_CONFIG;
-
-export const CELL_SIZE = 70;
-const GAP = 4;
-const BOARD_WIDTH = MAX_COLS * CELL_SIZE + (MAX_COLS - 1) * GAP;
-const BOARD_HEIGHT = MAX_ROWS * CELL_SIZE + (MAX_ROWS - 1) * GAP;
+export const CELL_SIZE = 48;
+const GAP = 3;
 
 interface BoardProps {
     rows: number;
@@ -28,7 +23,10 @@ export function Board({
     return (
         <div
             className="board-wrapper"
-            style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT }}
+            style={{
+                width: cols * CELL_SIZE + (cols - 1) * GAP,
+                height: rows * CELL_SIZE + (rows - 1) * GAP,
+            }}
         >
             <div
                 className="board"
