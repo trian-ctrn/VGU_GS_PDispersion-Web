@@ -1,6 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import './App.css';
-import init, { Point, solve_p_dispersion } from '../pkg/p_dispersion';
+import init, { Point, solve_exact, solve_greedy, solve_random } from '../pkg/p_dispersion';
+
+export type Algorithm = 'exact' | 'greedy' | 'random';
+
+const SOLVERS: Record<Algorithm, (points: any, placements: number) => Uint32Array> = {
+    exact: solve_exact,
+    greedy: solve_greedy,
+    random: solve_random,
+};
 
 import { Board } from './components/Board';
 import { cellKey } from './utils/cellKey';
@@ -41,6 +49,7 @@ function App() {
     const [history, setHistory] = useState<ExamRecord[]>([]);
     const [currentAssignments, setCurrentAssignments] = useState<Assignment[]>([]);
     const [examCounter, setExamCounter] = useState(1);
+    const [algorithm, setAlgorithm] = useState<Algorithm>('exact');
     const [exporting, setExporting] = useState<string | null>(null);
 
     useEffect(() => {
@@ -121,7 +130,8 @@ function App() {
         }
 
         try {
-            const indices = solve_p_dispersion(points, placements);
+            const solver = SOLVERS[algorithm];
+            const indices = solver(points, placements);
             const result = new Set<string>();
             const optimalSeats: InstanceType<typeof Point>[] = [];
             indices.forEach((i: number) => {
@@ -226,10 +236,12 @@ function App() {
                             rows={rows}
                             cols={cols}
                             placements={placements}
+                            algorithm={algorithm}
                             ready={ready}
                             onRowsChange={handleRowsChange}
                             onColsChange={handleColsChange}
                             onPlacementsChange={setPlacements}
+                            onAlgorithmChange={setAlgorithm}
                             onSelectAll={selectAll}
                             onClear={resetBoard}
                             onSolve={solve}

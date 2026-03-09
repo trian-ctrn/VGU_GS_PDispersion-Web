@@ -1,16 +1,25 @@
 import { NumberField } from './NumberField';
 import { GRID_CONFIG } from '../constants';
+import type { Algorithm } from '../App';
 
 const { MIN_ROWS, MIN_COLS, MAX_ROWS, MAX_COLS } = GRID_CONFIG;
+
+const ALGORITHM_OPTIONS: { value: Algorithm; label: string }[] = [
+    { value: 'exact', label: 'Exact (Optimal)' },
+    { value: 'greedy', label: 'Greedy (Fast)' },
+    { value: 'random', label: 'Random' },
+];
 
 interface ControlPanelProps {
     rows: number;
     cols: number;
     placements: number;
+    algorithm: Algorithm;
     ready: boolean;
     onRowsChange: (v: number) => void;
     onColsChange: (v: number) => void;
     onPlacementsChange: (v: number) => void;
+    onAlgorithmChange: (v: Algorithm) => void;
     onSelectAll: () => void;
     onClear: () => void;
     onSolve: () => void;
@@ -20,38 +29,54 @@ export function ControlPanel({
     rows,
     cols,
     placements,
+    algorithm,
     ready,
     onRowsChange,
     onColsChange,
     onPlacementsChange,
+    onAlgorithmChange,
     onSelectAll,
     onClear,
     onSolve,
 }: ControlPanelProps) {
     return (
         <section className="panel">
-            <div className="panel-row">
+            <div className="panel-grid">
                 <NumberField
-                    label="Room Rows"
+                    label="Rows"
                     value={rows}
                     min={MIN_ROWS}
                     max={MAX_ROWS}
                     onChange={onRowsChange}
                 />
                 <NumberField
-                    label="Room Columns"
+                    label="Columns"
                     value={cols}
                     min={MIN_COLS}
                     max={MAX_COLS}
                     onChange={onColsChange}
                 />
                 <NumberField
-                    label="Seats to Use"
+                    label="Seats"
                     value={placements}
                     min={1}
                     max={999}
                     onChange={onPlacementsChange}
                 />
+                <div className="field">
+                    <label className="field-label">Algorithm</label>
+                    <select
+                        className="field-select"
+                        value={algorithm}
+                        onChange={e => onAlgorithmChange(e.target.value as Algorithm)}
+                    >
+                        {ALGORITHM_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="panel-row actions">
