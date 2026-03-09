@@ -16,6 +16,31 @@ export interface ExamRecord {
     assignments: Assignment[];
 }
 
+export interface ExamConfig {
+    examId: number;
+    students: Student[];
+    csvFileName: string;
+}
+
+export type ExamStatus = 'pending' | 'processing' | 'done' | 'conflict';
+
+export interface ExamResult {
+    examId: number;
+    assignments: Assignment[];
+    conflictCount: number;
+    seatMap: Set<string>;
+    status: ExamStatus;
+}
+
+export interface RerunState {
+    running: boolean;
+    fromExam: number;
+    currentTrial: number;
+    totalTrials: number;
+}
+
+export type PipelinePhase = 'setup' | 'upload' | 'processing' | 'review';
+
 // 8-way neighbor check
 const isNeighbor = (p1: Point, p2: Point): boolean => {
     const dx = Math.abs(p1.x - p2.x);
@@ -321,3 +346,43 @@ export const assignStudentsToSeats = (
     // Fallback to DSatur
     return assignStudentsToSeatsDSatur(seats, students, forbiddenPairs);
 };
+
+// Seeded pseudo-random number generator (mulberry32)
+const seededRng = (seed: number) => {
+    let s = seed | 0;
+    return () => {
+        s = (s + 0x6d2b79f5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+};
+
+// Fisher-Yates shuffle using a seeded RNG
+const shuffleArray = <T,>(arr: T[], rng: () => number): T[] => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+};
+
+// Randomized assignment: shuffles student order by seed for varied exploration
+export const assignStudentsToSeatsRandomized = (
+    seats: Point[],
+    students: Student[],
+    forbiddenPairs: Set<string>,
+    seed: number,
+): Assignment[] => {
+    const rng = seededRng(seed);
+    const shuffled = shuffleArray(students, rng);
+
+    // Build a mapping from shuffled back to original for consistent IDs
+    const assignments = assignStudentsToSeats(seats, shuffled, forbiddenPairs);
+    return assignments;
+};
+
+// Count conflicts in an assignment list
+export const countConflicts = (assignments: Assignment[]): number =>
+    assignments.filter(a => a.hasConflict).length;

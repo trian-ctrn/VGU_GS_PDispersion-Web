@@ -1,5 +1,6 @@
 import { useRef, type ChangeEvent } from 'react';
 import type { Student } from '../utils/graphColoring';
+import { parseCSV } from '../utils/csvUtils';
 
 interface CsvImportProps {
     onStudentsLoaded: (students: Student[]) => void;
@@ -30,23 +31,6 @@ const downloadSample = () => {
     a.download = 'students_sample.csv';
     a.click();
     URL.revokeObjectURL(url);
-};
-
-const parseCSV = (text: string): Student[] => {
-    const lines = text.trim().split(/\r?\n/);
-    const firstLine = lines[0].toLowerCase();
-    const hasHeader = firstLine.includes('id') || firstLine.includes('name');
-    const dataLines = hasHeader ? lines.slice(1) : lines;
-
-    return dataLines
-        .filter(l => l.trim())
-        .map(line => {
-            const parts = line.match(/(".*?"|[^,]+)/g) ?? line.split(',');
-            const id = parts[0]?.replace(/"/g, '').trim() ?? '';
-            const name = parts[1]?.replace(/"/g, '').trim() ?? '';
-            return { id, name };
-        })
-        .filter(s => s.id && s.name);
 };
 
 export function CsvImport({ onStudentsLoaded, studentCount }: CsvImportProps) {
