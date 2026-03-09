@@ -15,14 +15,12 @@ interface ControlPanelProps {
     cols: number;
     placements: number;
     algorithm: Algorithm;
-    ready: boolean;
     onRowsChange: (v: number) => void;
     onColsChange: (v: number) => void;
     onPlacementsChange: (v: number) => void;
     onAlgorithmChange: (v: Algorithm) => void;
     onSelectAll: () => void;
     onClear: () => void;
-    onSolve: () => void;
 }
 
 export function ControlPanel({
@@ -30,14 +28,12 @@ export function ControlPanel({
     cols,
     placements,
     algorithm,
-    ready,
     onRowsChange,
     onColsChange,
     onPlacementsChange,
     onAlgorithmChange,
     onSelectAll,
     onClear,
-    onSolve,
 }: ControlPanelProps) {
     return (
         <section className="panel">
@@ -85,13 +81,6 @@ export function ControlPanel({
                 </button>
                 <button className="btn btn-secondary" onClick={onClear}>
                     Reset Room
-                </button>
-                <button
-                    className="btn btn-primary"
-                    onClick={onSolve}
-                    disabled={!ready}
-                >
-                    {ready ? '🪑 Assign Seats' : 'Loading…'}
                 </button>
             </div>
         </section>

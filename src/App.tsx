@@ -418,14 +418,12 @@ function App() {
                                 cols={cols}
                                 placements={placements}
                                 algorithm={algorithm}
-                                ready={ready}
                                 onRowsChange={handleRowsChange}
                                 onColsChange={handleColsChange}
                                 onPlacementsChange={setPlacements}
                                 onAlgorithmChange={setAlgorithm}
                                 onSelectAll={selectAll}
                                 onClear={resetBoard}
-                                onSolve={() => {}} // No single-solve in upload phase
                             />
                         </div>
 
