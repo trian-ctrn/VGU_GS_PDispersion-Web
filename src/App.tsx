@@ -38,7 +38,7 @@ function App() {
     const [ready, setReady] = useState(false);
     const [rows, setRows] = useState<number>(DEFAULT_ROWS);
     const [cols, setCols] = useState<number>(DEFAULT_COLS);
-    const [placements, setPlacements] = useState(2);
+    const [placements, setPlacements] = useState(12);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [resultCells, setResultCells] = useState<Set<string>>(new Set());
     const [error, setError] = useState<string | null>(null);
