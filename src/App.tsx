@@ -40,7 +40,7 @@ const { DEFAULT_ROWS, DEFAULT_COLS } = GRID_CONFIG;
 const yieldFrame = () => new Promise<void>(r => setTimeout(r, 0));
 
 function App() {
-    const [ready, setReady] = useState(false);
+    const [, setReady] = useState(false);
     const [rows, setRows] = useState<number>(DEFAULT_ROWS);
     const [cols, setCols] = useState<number>(DEFAULT_COLS);
     const [placements, setPlacements] = useState(12);
