@@ -39,7 +39,7 @@ export interface RerunState {
     totalTrials: number;
 }
 
-export type PipelinePhase = 'setup' | 'upload' | 'processing' | 'review';
+export type PipelinePhase = 'upload' | 'processing' | 'review';
 
 // 8-way neighbor check
 const isNeighbor = (p1: Point, p2: Point): boolean => {

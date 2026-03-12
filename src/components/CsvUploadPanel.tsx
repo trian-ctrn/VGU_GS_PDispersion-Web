@@ -45,11 +45,37 @@ export function CsvUploadPanel({
 
     const allLoaded = examCsvs.every(csv => csv !== null);
 
+    const downloadSample = () => {
+        const content = [
+            'id,name',
+            'S001,Nguyen Van An',
+            'S002,Tran Thi Bich',
+            'S003,Le Hoang Cuong',
+            'S004,Pham Minh Duc',
+            'S005,Hoang Thi Em',
+            'S006,Vu Quoc Feng',
+            'S007,Dao Thi Giang',
+            'S008,Bui Van Hai',
+            'S009,Do Thanh Inh',
+            'S010,Ngo Thi Kim',
+            'S011,Ly Van Lam',
+            'S012,Huynh Thi Mai',
+        ].join('\n');
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'students_sample.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="csv-upload-panel">
             <h2 className="upload-title">Upload Student Rosters</h2>
             <p className="upload-desc">
                 Upload one CSV per exam, or copy from another exam with the same roster.
+                Need a template? <button className="btn-link" onClick={downloadSample}>⬇ Download Sample CSV</button>
             </p>
 
             <div className="upload-slots">

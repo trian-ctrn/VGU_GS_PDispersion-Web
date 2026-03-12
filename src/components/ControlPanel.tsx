@@ -13,11 +13,9 @@ const ALGORITHM_OPTIONS: { value: Algorithm; label: string }[] = [
 interface ControlPanelProps {
     rows: number;
     cols: number;
-    placements: number;
     algorithm: Algorithm;
     onRowsChange: (v: number) => void;
     onColsChange: (v: number) => void;
-    onPlacementsChange: (v: number) => void;
     onAlgorithmChange: (v: Algorithm) => void;
     onSelectAll: () => void;
     onClear: () => void;
@@ -26,11 +24,9 @@ interface ControlPanelProps {
 export function ControlPanel({
     rows,
     cols,
-    placements,
     algorithm,
     onRowsChange,
     onColsChange,
-    onPlacementsChange,
     onAlgorithmChange,
     onSelectAll,
     onClear,
@@ -51,13 +47,6 @@ export function ControlPanel({
                     min={MIN_COLS}
                     max={MAX_COLS}
                     onChange={onColsChange}
-                />
-                <NumberField
-                    label="Seats"
-                    value={placements}
-                    min={1}
-                    max={999}
-                    onChange={onPlacementsChange}
                 />
                 <div className="field">
                     <label className="field-label">Algorithm</label>

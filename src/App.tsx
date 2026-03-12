@@ -14,7 +14,7 @@ import { Board } from './components/Board';
 import { cellKey } from './utils/cellKey';
 import { ControlPanel } from './components/ControlPanel';
 import { NumberField } from './components/NumberField';
-import { ExamSetup } from './components/ExamSetup';
+
 import { CsvUploadPanel } from './components/CsvUploadPanel';
 import { ExamReview } from './components/ExamReview';
 import { SeatMapModal } from './components/SeatMapModal';
@@ -43,7 +43,7 @@ function App() {
     const [, setReady] = useState(false);
     const [rows, setRows] = useState<number>(DEFAULT_ROWS);
     const [cols, setCols] = useState<number>(DEFAULT_COLS);
-    const [placements, setPlacements] = useState(12);
+
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [resultCells, setResultCells] = useState<Set<string>>(new Set());
     const [error, setError] = useState<string | null>(null);
@@ -51,10 +51,10 @@ function App() {
     const [historyLimit, setHistoryLimit] = useState<number>(PIPELINE_CONFIG.DEFAULT_MEMORY_WINDOW);
 
     /* ── Pipeline state ── */
-    const [phase, setPhase] = useState<PipelinePhase>('setup');
+    const [phase, setPhase] = useState<PipelinePhase>('upload');
     const [examCount, setExamCount] = useState(5);
-    const [examCsvs, setExamCsvs] = useState<(Student[] | null)[]>([]);
-    const [csvFileNames, setCsvFileNames] = useState<string[]>([]);
+    const [examCsvs, setExamCsvs] = useState<(Student[] | null)[]>(new Array(5).fill(null));
+    const [csvFileNames, setCsvFileNames] = useState<string[]>(new Array(5).fill(''));
     const [examResults, setExamResults] = useState<ExamResult[]>([]);
     const [currentExamIndex, setCurrentExamIndex] = useState(0);
     const [processingAttempt, setProcessingAttempt] = useState(0);
@@ -153,12 +153,21 @@ function App() {
        Phase transitions
        ═══════════════════════════════════════ */
 
-    /* Step 1 → Step 2 */
-    const handleExamCountSelected = (count: number) => {
+    /* ── Dynamic exam count change ── */
+    const handleExamCountChange = (count: number) => {
         setExamCount(count);
-        setExamCsvs(new Array(count).fill(null));
-        setCsvFileNames(new Array(count).fill(''));
-        setPhase('upload');
+        setExamCsvs(prev => {
+            if (count > prev.length) {
+                return [...prev, ...new Array(count - prev.length).fill(null)];
+            }
+            return prev.slice(0, count);
+        });
+        setCsvFileNames(prev => {
+            if (count > prev.length) {
+                return [...prev, ...new Array(count - prev.length).fill('')];
+            }
+            return prev.slice(0, count);
+        });
     };
 
     /* CSV upload handlers */
@@ -339,23 +348,20 @@ function App() {
         const result = examResults[examIndex];
         if (!result) return;
 
+        const grid = { rows, cols };
         if (type === 'csv') {
-            exportCSV(result.assignments, result.examId);
+            exportCSV(result.assignments, result.examId, grid);
+        } else if (type === 'png') {
+            exportPNG(result.assignments, result.examId, grid);
         } else {
-            // Open modal to render the map, then export
-            setModalExamId(result.examId);
-            await yieldFrame();
-            if (type === 'png') await exportPNG('seating-result', result.examId);
-            else await exportPDF('seating-result', result.examId);
+            await exportPDF(result.assignments, result.examId, grid);
         }
     };
 
-    /* ── Back to setup ── */
-    const handleBackToSetup = () => {
-        setPhase('setup');
+    /* ── Back to upload ── */
+    const handleBackToUpload = () => {
+        setPhase('upload');
         setExamResults([]);
-        setExamCsvs([]);
-        setCsvFileNames([]);
         setResultCells(new Set());
         setError(null);
         stopRef.current = true;
@@ -397,18 +403,33 @@ function App() {
                 </p>
             </header>
 
-            {/* ═══════ PHASE: SETUP ═══════ */}
-            {phase === 'setup' && (
-                <ExamSetup onContinue={handleExamCountSelected} />
-            )}
-
             {/* ═══════ PHASE: UPLOAD ═══════ */}
             {phase === 'upload' && (
                 <div className="layout-grid">
                     <aside className="col-left">
                         <div className="step-group">
                             <h2 className="step-heading">
-                                <span className="step-num">1</span> Room Setup
+                                <span className="step-num">1</span> Exam Settings
+                            </h2>
+                            <section className="panel compact-panel">
+                                <div className="panel-row">
+                                    <NumberField
+                                        label="Number of Exams"
+                                        value={examCount}
+                                        min={1}
+                                        max={PIPELINE_CONFIG.MAX_EXAMS}
+                                        onChange={handleExamCountChange}
+                                    />
+                                    <span className="help-tip">?
+                                        <span className="tip-text">How many exams this semester. You can change this at any time — existing uploads are preserved.</span>
+                                    </span>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div className="step-group">
+                            <h2 className="step-heading">
+                                <span className="step-num">2</span> Room Setup
                                 <span className="help-tip">?
                                     <span className="tip-text">Set the room size, then click &amp; drag on the floor plan to mark which seats are available.</span>
                                 </span>
@@ -416,11 +437,9 @@ function App() {
                             <ControlPanel
                                 rows={rows}
                                 cols={cols}
-                                placements={placements}
                                 algorithm={algorithm}
                                 onRowsChange={handleRowsChange}
                                 onColsChange={handleColsChange}
-                                onPlacementsChange={setPlacements}
                                 onAlgorithmChange={setAlgorithm}
                                 onSelectAll={selectAll}
                                 onClear={resetBoard}
@@ -429,7 +448,7 @@ function App() {
 
                         <div className="step-group">
                             <h2 className="step-heading">
-                                <span className="step-num">2</span> Upload Rosters
+                                <span className="step-num">3</span> Memory
                             </h2>
                             <section className="panel compact-panel">
                                 <div className="panel-row">
@@ -600,7 +619,7 @@ function App() {
                     onViewMap={examId => setModalExamId(examId)}
                     onRerunFrom={handleRerunFrom}
                     onExportExam={handleExportExam}
-                    onBackToSetup={handleBackToSetup}
+                    onBackToSetup={handleBackToUpload}
                 />
             )}
 

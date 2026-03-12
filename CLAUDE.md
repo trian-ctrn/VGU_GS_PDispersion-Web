@@ -1,110 +1,217 @@
-# Exam Seating Allocation System — Claude Instructions
+# Exam Seating Allocation System — Instruction File
 
-## Overview
-
-You are building an **exam seating allocation system** that uses **p-dispersion** and **graph coloring** to assign students to seats across multiple exams in a semester, ensuring no two students with conflicts (e.g. same class, same subject) sit adjacent to each other. The algorith and UI have been done. However the current pipeline processes exams in unlimited number of turns and does not have dynamic number of students per exam. The user also cannot review the previous exam's seat map while processing the next one, and there is no option to rerun specific exams with conflicts. Read the instructions below to implement the new features and workflow.
+This file provides persistent guidance for the AI coding assistant to comprehend the system's structure, algorithm concepts, and software development goals.
 
 ---
 
-## Step 1 — Select Number of Exams
+## 1. System Requirements
 
-At the start of the session, prompt the user to select the number of exams in the semester (e.g. 5 or 6 exams). This determines how many CSV files will be uploaded and how many seat maps need to be generated.
+### 1.1 Purpose
 
----
+This is an **exam seating allocation system** that assigns students to seats across multiple exams in a semester. The system ensures no two students with conflicts (same class, same subject, or previously adjacent in a prior exam) sit next to each other. It combines **p-dispersion** for optimal seat selection with **graph coloring** for conflict-free student-to-seat assignment.
 
-## Step 2 — Upload CSV Files
+### 1.2 Application Pipeline
 
-- Ask the user to upload one CSV file per exam.
-- The number of CSV files must match the number of exams selected in Step 1.
-- **Copy rule:** If two exams share the same number of students (e.g. Exam 1 and Exam 2 have identical rosters), the user may copy the CSV from Exam 1 to Exam 2 instead of uploading a separate file.
-- Each CSV should contain student information (student ID, name, class/subject group, etc.) needed for conflict detection.
+The application follows a **4-phase pipeline**:
 
----
+1. **Setup** — User selects the total number of exams in the semester (1–10).
+2. **Upload** — User uploads one CSV file per exam (with an option to copy a CSV from one exam to another if rosters are identical) and configures the room layout (rows, columns, available seats).
+3. **Processing** — The system processes seat maps one exam at a time, in order. After each exam, the graph coloring state (conflict history) is carried forward to the next exam. The user can review the previous exam's seat map while the current one is being processed.
+4. **Review** — All results are displayed with conflict badges (✅ Clear or ⚠️ Has Conflicts). The user can rerun conflicted exams or export results.
 
-## Step 3 — Sequential Processing with State Persistence
+### 1.3 Memory / Retry Logic
 
-Process the seat maps **one exam at a time**, in order (Exam 1 → Exam 2 → Exam 3 → ...).
+- A configurable **memory window** (default: 3) controls how many past exams are retained for conflict avoidance.
+- Per exam, the solver runs up to `MAX_ATTEMPTS_PER_EXAM` (50) iterations. If conflicts remain after the memory window, it continues with randomized seeds.
+- Processing stops when a conflict-free solution is found or all attempts are exhausted, keeping the best result.
 
-### Core Behavior
+### 1.4 Rerun Behavior
 
-- **After processing Exam N**, save the **graph coloring state/constraints** from that exam so they can be carried forward as initial conditions for Exam N+1.
-- **While processing Exam N+1**, display the completed seat map of Exam N in the UI so the user can review the previous result in parallel.
+After all exams are processed, exams with remaining conflicts can be rerun:
 
-### Why carry state forward?
+- **"Rerun from Exam X"** restarts allocation from the selected exam onward.
+- Each rerun runs up to `RERUN_TRIALS` (20) independent random trials per exam.
+- If any trial yields zero conflicts, it is accepted immediately; otherwise the trial with the fewest conflicts is kept.
 
-Students who were adjacent in Exam 1 should ideally not be adjacent again in Exam 2. The graph coloring constraints accumulate across exams to maximize overall separation across the semester.
+### 1.5 CSV Data Format
 
----
+Each CSV contains student information with a header row `id,name`:
 
-## Step 3.1 — Memory / Retry Logic
+```
+id,name
+S001,Nguyen Van An
+S002,Tran Thi Bich
+...
+```
 
-Define a **memory window** (default: 3 turns/attempts) per exam.
-
-- Run the graph coloring algorithm up to the memory limit.
-- If **conflicts still exist at the final turn**, do **not stop** — continue running additional turns (Turn 4, Turn 5, etc.) carrying forward the conflicts from the last turn.
-- Keep running until either a conflict-free solution is found, or the user manually stops.
-
----
-
-## Step 3.1.2 — Partial Conflict Resolution & Rerun
-
-After all exams have been processed, evaluate the results:
-
-- **Exams with zero conflicts** → Mark as ✅ Clear. Lock their seat maps.
-- **Exams with conflicts** → Mark as ⚠️ Has Conflicts.
-
-### Rerun Button
-
-Provide a **"Rerun from Exam X"** button that lets the user restart distribution from any exam that has conflicts (e.g. "Rerun from Exam 3").
-
-### Rerun Behavior per Exam
-
-When rerunning a conflicted exam:
-
-1. **Run 10–20 independent random trials** of the seat allocation algorithm for that exam.
-2. **If any trial produces a conflict-free seat map** → immediately stop, save that map for the exam, and move on to the next exam.
-3. **If no trial produces a conflict-free map** → save the trial with the **fewest conflicts** as the best available result for that exam, then proceed to the next exam.
-4. Continue this process for all remaining exams in sequence (e.g. Exam 3 → Exam 4 → Exam 5).
+A valid student requires a non-empty `id` and a non-empty `name`. The parser auto-detects headers and handles quoted fields.
 
 ---
 
-## UI Requirements
+## 2. Algorithm Concepts
 
-| Element | Description |
+### 2.1 P-Dispersion (Seat Selection)
+
+Given a set of available seats in the room, select N seats (one per student) that are **maximally dispersed** — i.e., maximize the minimum pairwise distance. This is solved via a WebAssembly module exposing three strategies: `solve_exact`, `solve_greedy`, and `solve_random`.
+
+### 2.2 Graph Coloring (Student-to-Seat Assignment)
+
+Once optimal seat positions are chosen, students are assigned to those seats using graph coloring as a constraint-satisfaction method:
+
+- **Nodes**: Students.
+- **Edges**: Conflict relationships — two students share an edge if they belong to the same class/subject group or were **8-way adjacent** (including diagonals) in any previous exam within the memory window.
+- **Colors**: Seats. The coloring ensures no two connected students are assigned to adjacent seats.
+
+### 2.3 Solver Strategies (in order of preference)
+
+1. **Backtracking with Forward Checking** — Orders seats by degree (most-constrained first), assigns students greedily with backtracking. Uses forward checking to prune future domains and detects domain wipeouts early.
+2. **DSatur (Degree of Saturation)** — Greedy fallback. Selects the seat with the highest saturation (most constrained neighbors) at each step. If no valid student exists, picks the one with minimum conflicts (graceful degradation).
+3. **Randomized Variant** — Wraps the above with a seeded Mulberry32 PRNG and Fisher-Yates shuffle to explore different solution orderings across trials.
+
+### 2.4 State Accumulation Across Exams
+
+After each exam, the assignment history is appended to an accumulated record. Before solving the next exam, the system scans this history to build a **forbidden pairs set** — pairs of students who sat adjacent in any prior exam. This set grows across the semester to maximize overall separation.
+
+---
+
+## 3. Available Tools & Project Structure
+
+### 3.1 Tech Stack
+
+| Tool | Version / Details |
 |---|---|
-| Exam selector | Dropdown or number input for selecting total exam count |
-| CSV upload panel | One upload slot per exam; supports copy/clone from a previous exam |
-| Seat map display | Visual grid showing student-to-seat assignments |
-| Progress indicator | Shows which exam is currently being processed |
-| Previous map viewer | Displays the last completed seat map while the next one processes |
-| Conflict badge | Shows number of conflicts per exam (0 = ✅, >0 = ⚠️) |
-| Rerun button | Appears after full run; lets user restart from any conflicted exam |
-| Trial counter | Shows progress during rerun (e.g. "Trial 7 / 20") |
+| React | 19.x (functional components, hooks) |
+| TypeScript | 5.x (strict mode) |
+| Vite | 7.x (build tool with HMR) |
+| WebAssembly | P-dispersion solver compiled to WASM via `vite-plugin-wasm` |
+| html2canvas | Screenshot generation for PNG export |
+| jsPDF | PDF generation |
+| ESLint | 9.x + TypeScript ESLint (strict linting) |
+
+### 3.2 Project Structure
+
+```
+├── src/
+│   ├── App.tsx                  # Main state manager, pipeline orchestration, solve/rerun logic
+│   ├── main.tsx                 # React entry point
+│   ├── components/
+│   │   ├── Board.tsx            # Drag-select seat grid (room layout)
+│   │   ├── ControlPanel.tsx     # Room config (rows, cols, algorithm), board actions
+│   │   ├── CsvImport.tsx        # Single CSV uploader with sample download
+│   │   ├── CsvUploadPanel.tsx   # Multi-exam upload slots, copy-from dropdown
+│   │   ├── ExamReview.tsx       # Results summary: conflict badges, view/rerun/export
+│   │   ├── ExamSetup.tsx        # Exam count selector
+│   │   ├── NumberField.tsx      # Reusable numeric input with draft state
+│   │   └── SeatMapModal.tsx     # Full-screen modal for viewing a seat map
+│   ├── constants/
+│   │   └── index.ts             # GRID_CONFIG, PIPELINE_CONFIG
+│   ├── hooks/
+│   │   └── useDragSelect.ts     # Click-and-drag cell painting hook
+│   └── utils/
+│       ├── cellKey.ts           # "r,c" string key helper for Set/Map lookups
+│       ├── csvUtils.ts          # CSV parser (auto-detect headers, handle quoting)
+│       ├── exportUtils.ts       # CSV/PNG/PDF export helpers
+│       └── graphColoring.ts     # Core algorithm: forbidden pairs, seat graph, solvers
+├── demo/                        # Sample CSV files (12 students each)
+├── index.html                   # HTML entry point
+├── vite.config.ts               # Vite config with WASM plugin
+└── package.json                 # Dependencies and scripts
+```
+
+### 3.3 Key Data Types
+
+```typescript
+interface Student { id: string; name: string }
+
+interface Assignment {
+  student: Student;
+  point: Point;              // seat coordinates (row, col)
+  hasConflict?: boolean;     // true if a constraint was violated
+}
+
+interface ExamResult {
+  examId: number;
+  assignments: Assignment[];
+  conflictCount: number;
+  seatMap: Set<string>;
+  status: 'pending' | 'processing' | 'done' | 'conflict';
+}
+
+type PipelinePhase = 'setup' | 'upload' | 'processing' | 'review';
+type Algorithm = 'exact' | 'greedy' | 'random';
+```
+
+### 3.4 Constants
+
+```typescript
+GRID_CONFIG = {
+  DEFAULT_ROWS: 5, DEFAULT_COLS: 5,
+  MIN_ROWS: 1, MAX_ROWS: 8,
+  MIN_COLS: 1, MAX_COLS: 8,
+}
+
+PIPELINE_CONFIG = {
+  MAX_EXAMS: 10,
+  DEFAULT_MEMORY_WINDOW: 3,
+  RERUN_TRIALS: 20,
+  MAX_ATTEMPTS_PER_EXAM: 50,
+}
+```
 
 ---
 
-## Algorithm Notes
+## 4. Coding Style
 
-- Use **graph coloring** as the core constraint-satisfaction method.
-- Each student is a node; edges represent conflicts (same class, same subject, or previously adjacent in a prior exam).
-- The coloring assigns seats (colors) such that no two connected nodes share adjacent seats.
-- Carry the **edge set** (conflict graph) forward between exams to encode historical adjacency constraints.
-- For rerun trials, vary the random seed or heuristic order to explore different solutions.
+### 4.1 TypeScript
+
+- **Strict mode** is enforced — no `any`, no unused locals or parameters.
+- Use **interfaces** for data shapes (`Student`, `Assignment`, `ExamResult`).
+- Use **discriminated unions** for enum-like types (`Algorithm`, `PipelinePhase`).
+- Prefer **explicit types** over inference at function boundaries.
+
+### 4.2 React
+
+- **Functional components** with hooks (`useState`, `useCallback`, `useRef`, `useEffect`).
+- Props are passed as a single destructured object.
+- Event handlers use `useCallback` where performance matters; inline arrow functions otherwise.
+- All application state lives in `App.tsx` via local `useState` — no external state manager.
+- Conditional CSS classes via template literals.
+
+### 4.3 Naming Conventions
+
+- `camelCase` for variables, functions, and props.
+- `PascalCase` for components and type/interface names.
+- `on*` prefix for event handler props (e.g., `onCellDown`, `onExportExam`).
+- `UPPER_SNAKE_CASE` for constants.
+- Standard abbreviations: `csv`, `ref`, `rng`, `WASM`.
+
+### 4.4 Code Organization
+
+- **Separation of concerns**: `components/` (UI), `utils/` (algorithms and helpers), `hooks/` (reusable logic), `constants/` (configuration).
+- Arrow function declarations preferred (`const func = () => {}`).
+- Section headers in utility files use `/* ── Title ── */` comment style.
+- Helper functions are defined at module level in utility files.
+
+### 4.5 CSS
+
+- Custom properties and CSS Grid for layouts.
+- Dark theme (dark background, light text).
+- Responsive breakpoints via `@media (max-width: 780px)`.
 
 ---
 
-## Summary Flow
+## 5. Summary Flow
 
 ```
 Select N exams
-  └─> Upload N CSVs (with optional copy)
+  └─> Upload N CSVs (with optional copy) + configure room layout
         └─> Process Exam 1
-              └─> Save graph state
+              └─> Save graph state (forbidden pairs)
                     └─> Display Exam 1 map → Process Exam 2
                           └─> Save graph state
                                 └─> ... repeat for all N exams
                                       └─> Review results
                                             └─> [If conflicts] Rerun from Exam X
-                                                  └─> 10–20 trials per conflicted exam
-                                                        └─> Save best result (0 conflicts or fewest)
+                                                  └─> 10–20 random trials per exam
+                                                        └─> Save best result
 ```
